@@ -67,10 +67,10 @@ void cholesky_openmp(int n) {
      * 2. Compute Cholesky factorization for U
      */
     start = omp_get_wtime();
-    #pragma omp parallel for private(j,k,tmp)
     for(i=0; i<n; i++) {
         // Calculate diagonal elements
         tmp = 0.0;
+        #pragma parallel for reduction(+:tmp) schedule(dynamic, n)
         for(k=0;k<i;k++) {
             tmp += U[k][i]*U[k][i];
         }
@@ -78,6 +78,7 @@ void cholesky_openmp(int n) {
         // Calculate non-diagonal elements
         for(j=i+1;j<n;j++) {
             tmp = 0.0;
+            #pragma parallel for reduction(+:tmp) schedule(dynamic, n)
             for (k=0; k<i; k++){
                 tmp += U[k][j]*U[k][i];
             }
@@ -110,10 +111,9 @@ void cholesky_openmp(int n) {
      */
     start = omp_get_wtime();
     
-    #pragma omp parallel for collapse(2) private(k)
+    #pragma omp parallel for collapse(3)
     for (int i = 0; i < n; i++){
         for (int j = 0; j < n; j++){
-            B[i][j] = 0.0;
             for(int k = 0; k < n; k++){
                 B[i][j] += L[i][k] * U[k][j];
             }
@@ -128,10 +128,10 @@ void cholesky_openmp(int n) {
      * 5. Check if all elements of A and B have a difference smaller than 0.001%
      */
     cnt=0;
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for collapse(2) reduction(+:cnt)
     for (int i = 0; i < n; i++){
         for (int j = 0; j < n; j++){
-            if(fabs(A[i][j]-B[i][j]) > 0.00001){
+            if(fabs((B[i][j] - A[i][j])/A[i][j]) * 100 > 0.001){
                 cnt++;
             }
         }
@@ -276,7 +276,7 @@ void cholesky(int n) {
     cnt=0;
     for (int i = 0; i < n; i++){
         for (int j = 0; j < n; j++){
-            if(fabs(A[i][j]-B[i][j]) > 0.00001){
+            if(fabs((B[i][j] - A[i][j])/A[i][j]) * 100 > 0.001){
                 cnt++;
             }
         }
