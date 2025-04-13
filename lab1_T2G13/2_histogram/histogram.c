@@ -149,20 +149,27 @@ int main()
     printf("Reduction");
 
     initHist(hist);
-
-    // Assign x values to the right historgram bucket
     time = omp_get_wtime();
-    for (int i = 0; i < num_trials; i++)
+
+    // Create and initialize the local histogram
+    long hist_local[num_buckets];
+    for (int i = 0; i < num_buckets; i++) hist_local[i] = 0;
+    
+    #pragma omp parallel for reduction(+ : hist_local[:num_buckets])
     {
+        for (int i = 0; i < num_trials; i++)
+        {
+            long ival = (long)(x[i] - xlow) / bucket_width;
+            hist_local[ival]++;
 
-        long ival = (long)(x[i] - xlow) / bucket_width;
+            #ifdef DEBUG
+            printf("i = %d,  xi = %f, ival = %d\n", i, (float)x[i], ival);
+            #endif
 
-        hist[ival]++;
-
-#ifdef DEBUG
-        printf("i = %d,  xi = %f, ival = %d\n", i, (float)x[i], ival);
-#endif
+        }
     }
+
+    for (int i = 0; i < num_buckets; i++) hist[i] = hist_local[i];                
 
     time = omp_get_wtime() - time;
 
