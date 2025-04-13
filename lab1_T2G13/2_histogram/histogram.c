@@ -90,17 +90,85 @@ int main()
     ////////////////////////////////////////////////////////////////
     // Assign x values to the right histogram bucket -- critical
     ////////////////////////////////////////////////////////////////
+    printf("Critical");
 
+    initHist(hist);
+
+    // Assign x values to the right historgram bucket
+    time = omp_get_wtime();
+    #pragma omp parallel for
+    for (int i = 0; i < num_trials; i++)
+    {
+
+        long ival = (long)(x[i] - xlow) / bucket_width;
+        #pragma omp critical
+        {
+            hist[ival]++;
+        }
+
+#ifdef DEBUG
+        printf("i = %d,  xi = %f, ival = %d\n", i, (float)x[i], ival);
+#endif
+    }
+
+    time = omp_get_wtime() - time;
+
+    analyzeResults(time, hist);
 
     ////////////////////////////////////////////////////////////////
     // Assign x values to the right histogram bucket -- locks
     ////////////////////////////////////////////////////////////////
+    printf("Locks");
 
+    initHist(hist);
+    omp_lock_t locks[num_buckets];
+    for (int i = 0; i < num_buckets; i++)
+        omp_init_lock(&locks[i]);
+
+    // Assign x values to the right historgram bucket
+    time = omp_get_wtime();
+    #pragma omp parallel for
+    for (int i = 0; i < num_trials; i++)
+    {
+
+        long ival = (long)(x[i] - xlow) / bucket_width;
+        omp_set_lock(&locks[ival]);
+        hist[ival]++;
+        omp_unset_lock(&locks[ival]);
+
+#ifdef DEBUG
+        printf("i = %d,  xi = %f, ival = %d\n", i, (float)x[i], ival);
+#endif
+    }
+
+    time = omp_get_wtime() - time;
+
+    analyzeResults(time, hist);
 
     ////////////////////////////////////////////////////////////////
     // Assign x values to the right histogram bucket -- reduction
     ////////////////////////////////////////////////////////////////
+    printf("Reduction");
 
+    initHist(hist);
+
+    // Assign x values to the right historgram bucket
+    time = omp_get_wtime();
+    for (int i = 0; i < num_trials; i++)
+    {
+
+        long ival = (long)(x[i] - xlow) / bucket_width;
+
+        hist[ival]++;
+
+#ifdef DEBUG
+        printf("i = %d,  xi = %f, ival = %d\n", i, (float)x[i], ival);
+#endif
+    }
+
+    time = omp_get_wtime() - time;
+
+    analyzeResults(time, hist);
 
     free(x);
     return 0;
