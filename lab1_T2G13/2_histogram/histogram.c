@@ -99,7 +99,6 @@ int main()
     #pragma omp parallel for
     for (int i = 0; i < num_trials; i++)
     {
-
         long ival = (long)(x[i] - xlow) / bucket_width;
         #pragma omp critical
         {
@@ -122,8 +121,7 @@ int main()
 
     initHist(hist);
     omp_lock_t locks[num_buckets];
-    for (int i = 0; i < num_buckets; i++)
-        omp_init_lock(&locks[i]);
+    for (int i = 0; i < num_buckets; i++) omp_init_lock(&locks[i]);
 
     // Assign x values to the right historgram bucket
     time = omp_get_wtime();
