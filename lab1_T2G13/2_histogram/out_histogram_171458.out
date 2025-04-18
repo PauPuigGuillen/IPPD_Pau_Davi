@@ -1,0 +1,13 @@
+1 threads
+Sequential histogram for 50 buckets of 1000000 values
+ ave = 20000.000000, std_dev = 394.372925
+ in 0.001108 seconds
+Critical histogram for 50 buckets of 1000000 values
+ ave = 20000.000000, std_dev = 394.372925
+ in 0.006466 seconds
+Locks histogram for 50 buckets of 1000000 values
+ ave = 20000.000000, std_dev = 394.372925
+ in 0.006284 seconds
+Reduction histogram for 50 buckets of 1000000 values
+ ave = 20000.000000, std_dev = 394.372925
+ in 0.002198 seconds
