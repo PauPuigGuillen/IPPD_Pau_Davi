@@ -154,7 +154,6 @@ int main()
     #pragma omp parallel for reduction(+ : hist[:num_buckets])
     for (int i = 0; i < num_trials; i++) {
         long ival = (long)((x[i] - xlow) / bucket_width);
-        if (ival >= num_buckets) ival = num_buckets - 1;
         hist[ival]++;
         
         #ifdef DEBUG
