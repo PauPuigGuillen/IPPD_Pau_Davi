@@ -151,25 +151,16 @@ int main()
     initHist(hist);
     time = omp_get_wtime();
 
-    // Create and initialize the local histogram
-    long hist_local[num_buckets];
-    for (int i = 0; i < num_buckets; i++) hist_local[i] = 0;
-    
-    #pragma omp parallel for reduction(+ : hist_local[:num_buckets])
-    {
-        for (int i = 0; i < num_trials; i++)
-        {
-            long ival = (long)(x[i] - xlow) / bucket_width;
-            hist_local[ival]++;
-
-            #ifdef DEBUG
-            printf("i = %d,  xi = %f, ival = %d\n", i, (float)x[i], ival);
-            #endif
-
-        }
-    }
-
-    for (int i = 0; i < num_buckets; i++) hist[i] = hist_local[i];                
+    #pragma omp parallel for reduction(+ : hist[:num_buckets])
+    for (int i = 0; i < num_trials; i++) {
+        long ival = (long)((x[i] - xlow) / bucket_width);
+        if (ival >= num_buckets) ival = num_buckets - 1;
+        hist[ival]++;
+        
+        #ifdef DEBUG
+        printf("i = %d, xi = %f, ival = %ld\n", i, x[i], ival);
+        #endif
+    }      
 
     time = omp_get_wtime() - time;
 
