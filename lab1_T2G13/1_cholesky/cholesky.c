@@ -70,15 +70,14 @@ void cholesky_openmp(int n) {
     for(i=0; i<n; i++) {
         // Calculate diagonal elements
         tmp = 0.0;
-        #pragma parallel for reduction(+:tmp) schedule(dynamic, n)
         for(k=0;k<i;k++) {
             tmp += U[k][i]*U[k][i];
         }
         U[i][i] = sqrt(A[i][i]-tmp);
         // Calculate non-diagonal elements
+        #pragma omp parallel for private(k,tmp) schedule(dynamic)
         for(j=i+1;j<n;j++) {
             tmp = 0.0;
-            #pragma parallel for reduction(+:tmp) schedule(dynamic, n)
             for (k=0; k<i; k++){
                 tmp += U[k][j]*U[k][i];
             }
@@ -111,9 +110,10 @@ void cholesky_openmp(int n) {
      */
     start = omp_get_wtime();
     
-    #pragma omp parallel for collapse(3)
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < n; i++){
         for (int j = 0; j < n; j++){
+	        B[i][j] = 0.0;
             for(int k = 0; k < n; k++){
                 B[i][j] += L[i][k] * U[k][j];
             }
