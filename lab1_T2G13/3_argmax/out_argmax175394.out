@@ -1,0 +1,16 @@
+
+Sequential Argmax
+Sequential runtime: 0.009870
+The max is: 1.000000, at index 8388608
+
+Parallel Argmax
+Parallel runtime: 0.005257
+The max is: 1.000000, at index 8388608
+
+Recursive Argmax
+Recursive runtime: 0.013785
+The max is: 1.000000, at index 8388608
+
+Recursive Tasks Argmax
+Recursive tasks runtime: 0.013442
+The max is: 1.000000, at index 8388608

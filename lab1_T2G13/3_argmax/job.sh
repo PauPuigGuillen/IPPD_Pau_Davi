@@ -5,12 +5,12 @@
 #SBATCH -p std
 #SBATCH --output=out_argmax%j.out
 #SBATCH --error=out_argmax%j.err
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --time=00:05:00
 
 make >> make.out || exit 1      # Exit if make fails
 
-./argmax 1000000
+./argmax 16777216
 

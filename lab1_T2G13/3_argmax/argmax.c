@@ -8,7 +8,7 @@
   #define M_PI 3.141592653589793238462643383279502984
 #endif
 
-#define K 32
+#define K 16
 
 void initialize(double *v, int N) {
     for (int i = 0; i < N; i++) {
@@ -37,10 +37,13 @@ void argmax_par(double *v, int N, double *m, int *idx_m) {
     for (int i = 1; i < N; i++){
         if (v[i] > max_val){
             max_val = v[i];
-            #pragma omp critical
-            {
-                idx = i;
-            }
+        }
+    }
+
+    for (int i = 1; i < N; i++){
+        if (v[i] == max_val){
+            idx = i;
+            break;
         }
     }
 
@@ -142,8 +145,6 @@ int main (int argc, char* argv[]){
     printf("The max is: %f, at index %d\n", *max, *idx);
     
     printf("\nParallel Argmax\n");
-    *max = 0.0;
-    *idx = 0;
     start = omp_get_wtime();
     argmax_par(array, n, max, idx);
     end = omp_get_wtime();
@@ -151,8 +152,6 @@ int main (int argc, char* argv[]){
     printf("The max is: %f, at index %d\n", *max, *idx);
 
     printf("\nRecursive Argmax\n");
-    *max = 0.0;
-    *idx = 0;
     start = omp_get_wtime();
     argmax_recursive(array, n, max, idx);
     end = omp_get_wtime();
@@ -160,8 +159,6 @@ int main (int argc, char* argv[]){
     printf("The max is: %f, at index %d\n", *max, *idx);
 
     printf("\nRecursive Tasks Argmax\n");
-    *max = 0.0;
-    *idx = 0;
     start = omp_get_wtime();
     argmax_recursive_tasks(array, n, max, idx);
     end = omp_get_wtime();
