@@ -75,7 +75,7 @@ void cholesky_openmp(int n) {
         }
         U[i][i] = sqrt(A[i][i]-tmp);
         // Calculate non-diagonal elements
-        #pragma omp parallel for private(k,tmp) schedule(dynamic)
+        #pragma omp parallel for private(k,tmp) schedule(dynamic, 64)
         for(j=i+1;j<n;j++) {
             tmp = 0.0;
             for (k=0; k<i; k++){
