@@ -11,5 +11,5 @@
 
 make >> make.out || exit 1      # Exit if make fails
 
-./cholesky 3000
+./montecarlo 3000
 
