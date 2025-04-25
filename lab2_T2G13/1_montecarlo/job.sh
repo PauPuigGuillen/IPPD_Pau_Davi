@@ -5,11 +5,11 @@
 #SBATCH --output=out_montecarlo_%j.out
 #SBATCH --error=out_montecarlo_%j.err
 #SBATCH --cpus-per-task=1
-#SBATCH --ntasks=192
+#SBATCH --ntasks=12
 #SBATCH --nodes=1
 #SBATCH --time=00:05:00
 
 make >> make.out || exit 1      # Exit if make fails
 
-./montecarlo 3000
+mpirun -n 12 ./montecarlo 4 100000000 10
 
