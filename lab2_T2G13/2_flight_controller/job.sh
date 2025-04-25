@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Configuration for 1 node, 4 cores and 5 minutes of execution time
 #SBATCH --job-name=ex1
 #SBATCH -p std
 #SBATCH --output=out_cholesky_%j.out
