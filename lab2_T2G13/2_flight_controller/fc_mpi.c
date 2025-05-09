@@ -53,7 +53,8 @@ void read_planes_mpi(const char* filename, PlaneList* planes, int* N, int* M, do
     }
     fclose(file);
     int nplanes_inserted_global = 0;
-    MPI_Reduce(&nplanes_inserted_local, &nplanes_inserted_global, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Allreduce(&nplanes_inserted_local, &nplanes_inserted_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    printf("Total planes read: %d\n", nplanes_inserted_local);
     printf("Total planes read: %d\n", nplanes_inserted_global);
     assert(num_planes == nplanes_inserted_global);
 }
