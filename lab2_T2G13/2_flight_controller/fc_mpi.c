@@ -11,12 +11,81 @@
 /// Reading the planes from a file for MPI
 void read_planes_mpi(const char* filename, PlaneList* planes, int* N, int* M, double* x_max, double* y_max, int rank, int size, int* tile_displacements)
 {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening file");
+        return;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    int num_planes = 0;
+
+    // Reading header
+    fgets(line, sizeof(line), file);
+    fgets(line, sizeof(line), file);
+    sscanf(line, "# Map: %lf, %lf : %d %d", x_max, y_max, N, M);
+    fgets(line, sizeof(line), file);
+    sscanf(line, "# Number of Planes: %d", &num_planes);
+    fgets(line, sizeof(line), file);
+
+    int total_tiles = (*N) * (*M);
+    for (int i = 0; i < size; i++) {
+        tile_displacements[i] = (total_tiles / size) * i;
+    }
+
+    // Reading plane data
+    int nplanes_inserted_local = 0;
+    while (fgets(line, sizeof(line), file)) {
+        int idx;
+        double x, y, vx, vy;
+        if (sscanf(line, "%d %lf %lf %lf %lf",
+                   &idx, &x, &y, &vx, &vy) == 5) {
+            int index_i = get_index_i(x, *x_max, *N);
+            int index_j = get_index_j(y, *y_max, *M);
+            int index_map = get_index(index_i, index_j, *N, *M);
+            int rank_plane = get_rank_from_indices(index_i, index_j, *N, *M, tile_displacements, size);
+            if (rank_plane != rank) {
+                continue; // Skip planes that don't belong to this rank
+            }
+            insert_plane(planes, idx, index_map, rank, x, y, vx, vy);
+            nplanes_inserted_local++;
+        }
+    }
+    fclose(file);
+    int nplanes_inserted_global = 0;
+    MPI_Reduce(&nplanes_inserted_local, &nplanes_inserted_global, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    printf("Total planes read: %d\n", nplanes_inserted_global);
+    assert(num_planes == nplanes_inserted_global);
 }
 
 /// TODO
 /// Communicate planes using mainly Send/Recv calls with default data types
 void communicate_planes_send(PlaneList* list, int N, int M, double x_max, double y_max, int rank, int size, int* tile_displacements)
 {
+    //Calcular qué aviones tengo que comunicar
+    
+    PlaneNode* current = list->head;
+    while (current != NULL) {
+        int index_i = get_index_i(current->x, x_max, N);
+        int index_j = get_index_j(current->y, y_max, M);
+        int index_map = get_index(index_i, index_j, N, M);
+        int rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
+
+        if (rank != current->rank) {
+            //Enviar el avión a rank
+            MPI_Send(&current->index_plane, 1, MPI_INT, rank, 0, MPI_COMM_WORLD);
+            MPI_Send(&current->x, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
+            MPI_Send(&current->y, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
+            MPI_Send(&current->vx, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
+            MPI_Send(&current->vy, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
+        }
+        current = current->next;
+    }
+
+    //Saber qué aviones tengo que recibir (MPI_Alltoallv)
+    
+
+    //Enviar los aviones que tengo que enviar (MPI_ISend, un send por avión, un Recv por avión)
 }
 
 /// TODO
@@ -54,7 +123,9 @@ int main(int argc, char **argv) {
     int rank, size;
 
     /// TODO
-
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int tile_displacements[size+1];
     int mode = 0;
