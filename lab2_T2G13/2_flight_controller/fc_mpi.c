@@ -94,9 +94,22 @@ void communicate_planes_send(PlaneList* list, int N, int M, double x_max, double
         int index_j = get_index_j(current->y, y_max, M);
         int plane_rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
 
+        //cast index_map to double
+        index_map = (double) current->index_map;
+
+        double* plane_info = (double*) malloc(sizeof(int) * 5);
+
+        plane_info[0] = (double) current->index_plane;
+        plane_info[1] = (double) current->x;
+        plane_info[2] = (double) current->y;
+        plane_info[3] = (double) current->vx;
+        plane_info[4] = (double) current->vy;
+        
+
         if (plane_rank != rank){
-            MPI_Isend( current->index_plane, 5 , MPI_DOUBLE, plane_rank, 0 , MPI_COMM_WORLD, req);
+            MPI_Isend( plane_info, 5 , MPI_DOUBLE, plane_rank, 0 , MPI_COMM_WORLD, req);
         }
+        current = current->next;
     }
 
     //enviar 
