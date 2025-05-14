@@ -62,37 +62,52 @@ void read_planes_mpi(const char* filename, PlaneList* planes, int* N, int* M, do
 /// TODO
 /// Communicate planes using mainly Send/Recv calls with default data types
 void communicate_planes_send(PlaneList* list, int N, int M, double x_max, double y_max, int rank, int size, int* tile_displacements)
-{
-    //Calcular qué aviones tengo que comunicar
-    
+{   
     PlaneNode* current = list->head;
+    int* to_send = (int*) malloc(sizeof(int) * size);
     while (current != NULL) {
+        //Calcular cuantos aviones tengo que comunicar
         int index_i = get_index_i(current->x, x_max, N);
         int index_j = get_index_j(current->y, y_max, M);
-        int index_map = get_index(index_i, index_j, N, M);
-        int rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
-
-        if (rank != current->rank) {
-            //Enviar el avión a rank
-            MPI_Send(&current->index_plane, 1, MPI_INT, rank, 0, MPI_COMM_WORLD);
-            MPI_Send(&current->x, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
-            MPI_Send(&current->y, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
-            MPI_Send(&current->vx, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
-            MPI_Send(&current->vy, 1, MPI_DOUBLE, rank, 0, MPI_COMM_WORLD);
+        int plane_rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
+        
+        if (plane_rank != rank){
+            to_send[plane_rank] += 1;
         }
+
         current = current->next;
     }
 
-    //Saber qué aviones tengo que recibir (MPI_Alltoallv)
-    
+    //comunicar cuantos aviones a cada rank con un alltoall
+    int* to_receive = (int*) malloc(sizeof(int) * size);
+    MPI_Alltoall(to_send, 1, MPI_INT, to_receive, 1, MPI_INT, MPI_COMM_WORLD);
+    int total_to_send = 0;
+    for (int i = 0; i < size; i++) {
+        total_to_send += to_send[i];
+    }
+    MPI_Request req[total_to_send];
 
-    //Enviar los aviones que tengo que enviar (MPI_ISend, un send por avión, un Recv por avión)
+    //enviar los aviones
+    current = list->head;
+    while(current != NULL){
+        int index_i = get_index_i(current->x, x_max, N);
+        int index_j = get_index_j(current->y, y_max, M);
+        int plane_rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
+
+        if (plane_rank != rank){
+            MPI_Isend( current->index_plane, 5 , MPI_DOUBLE, plane_rank, 0 , MPI_COMM_WORLD, req);
+        }
+    }
+
+    //enviar 
+
 }
 
 /// TODO
 /// Communicate planes using all to all calls with default data types
 void communicate_planes_alltoall(PlaneList* list, int N, int M, double x_max, double y_max, int rank, int size, int* tile_displacements)
 {
+ 
 }
 
 typedef struct {
@@ -105,12 +120,9 @@ typedef struct {
 
 /// TODO
 /// Communicate planes using all to all calls with custom data types
-void communicate_planes_struct_mpi(PlaneList* list,
-                               int N, int M,
-                               double x_max, double y_max,
-                               int rank, int size,
-                               int* tile_displacements)
+void communicate_planes_struct_mpi(PlaneList* list, int N, int M, double x_max, double y_max, int rank, int size, int* tile_displacements)
 {
+
 }
 
 int main(int argc, char **argv) {
