@@ -92,12 +92,13 @@ void communicate_planes_send(PlaneList* list, int N, int M, double x_max, double
     while(current != NULL){
         int index_i = get_index_i(current->x, x_max, N);
         int index_j = get_index_j(current->y, y_max, M);
+        int index_map = get_index(index_i, index_j, *N, *M);
         int plane_rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
 
         //cast index_map to double
-        index_map = (double) current->index_map;
+        double index_map_d = (double) index_map;
 
-        double* plane_info = (double*) malloc(sizeof(int) * 5);
+        double* plane_info = (double*) malloc(sizeof(double) * 5);
 
         plane_info[0] = (double) current->index_plane;
         plane_info[1] = (double) current->x;
