@@ -48,10 +48,10 @@ int main(int argc, char *argv[])
     double start_time = MPI_Wtime();
     for (int i = 0; i < NUM_SAMPLES; i++)
     {
-        double x = pcg32_random(&ran);
-        double y = pcg32_random(&ran);
-        double z = pcg32_random(&ran);
-        double w = pcg32_random(&ran);
+        double x = pcg32_random(&rng);
+        double y = pcg32_random(&rng);
+        double z = pcg32_random(&rng);
+        double w = pcg32_random(&rng);
         double d = 0;
         
         if (N >= 1) d += x * x;
