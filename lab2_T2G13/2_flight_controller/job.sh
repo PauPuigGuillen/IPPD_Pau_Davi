@@ -11,4 +11,4 @@
 
 make >> make.out || exit 1      # Exit if make fails
 
-mpirun -n 2 ./fc_mpi input_planes_test.txt 25 1 0
+mpirun -n 2 ./fc_mpi input_planes_test.txt 25 0 0
