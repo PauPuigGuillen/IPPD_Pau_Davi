@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     double err = 0;
     double elapsed_time = 0;
     double start_time = MPI_Wtime();
-    for (int i = 0; i < NUM_SAMPLES; i++)
+    for (int i = 0; i < NUM_SAMPLES/size; i++)
     {
         double x = pcg32_random(&rng);
         double y = pcg32_random(&rng);
