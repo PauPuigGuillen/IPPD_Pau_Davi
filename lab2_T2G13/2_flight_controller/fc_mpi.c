@@ -31,7 +31,6 @@ void read_planes_mpi(const char* filename, PlaneList* planes, int* N, int* M, do
     int total_tiles = (*N) * (*M);
     for (int i = 0; i < size; i++) {
         tile_displacements[i] = (total_tiles / size) * i;
-        if (i == rank)printf("Rank %d: tile_displacements[%d] = %d\n", rank, i, tile_displacements[i]);
     }
 
     // Reading plane data
@@ -141,7 +140,7 @@ void communicate_planes_send(PlaneList* list, int N, int M, double x_max, double
 /// Communicate planes using all to all calls with default data types
 void communicate_planes_alltoall(PlaneList* list, int N, int M, double x_max, double y_max, int rank, int size, int* tile_displacements)
 {
-    // Count planes to send to each rank
+    
     int* send_counts = (int*) calloc(size, sizeof(int));
     PlaneNode* current = list->head;
     while (current != NULL) {
@@ -154,11 +153,9 @@ void communicate_planes_alltoall(PlaneList* list, int N, int M, double x_max, do
         current = current->next;
     }
 
-    // Exchange counts with all ranks
-    int* recv_counts = (int*) malloc(size * sizeof(int));
+    int* recv_counts = (int*) calloc(size, sizeof(int));
     MPI_Alltoall(send_counts, 1, MPI_INT, recv_counts, 1, MPI_INT, MPI_COMM_WORLD);
 
-    // Calculate displacements for send and receive buffers
     int* send_displs = (int*) malloc(size * sizeof(int));
     int* recv_displs = (int*) malloc(size * sizeof(int));
     send_displs[0] = 0;
@@ -168,38 +165,34 @@ void communicate_planes_alltoall(PlaneList* list, int N, int M, double x_max, do
         recv_displs[i] = recv_displs[i-1] + recv_counts[i-1];
     }
 
-    // Calculate total planes to send and receive
     int total_send = send_displs[size-1] + send_counts[size-1];
     int total_recv = recv_displs[size-1] + recv_counts[size-1];
 
-    // Prepare send buffer
-    double* send_buffer = (double*) malloc(total_send * 6 * sizeof(double));
+    double* send_buffer = (double*) malloc(total_send * 5 * sizeof(double));
     int send_idx = 0;
     current = list->head;
     while (current != NULL) {
+        PlaneNode* next = current->next;
         int index_i = get_index_i(current->x, x_max, N);
         int index_j = get_index_j(current->y, y_max, M);
         int plane_rank = get_rank_from_indices(index_i, index_j, N, M, tile_displacements, size);
         
         if (plane_rank != rank) {
-            int index_map = get_index(index_i, index_j, N, M);
-            send_buffer[send_idx++] = (double)current->index_plane;
-            send_buffer[send_idx++] = current->x;
-            send_buffer[send_idx++] = current->y;
-            send_buffer[send_idx++] = current->vx;
-            send_buffer[send_idx++] = current->vy;
-            send_buffer[send_idx++] = (double)index_map;
+            send_buffer[send_idx*5] = (double)current->index_plane;
+            send_buffer[send_idx*5 + 1] = current->x;
+            send_buffer[send_idx*5 + 2] = current->y;
+            send_buffer[send_idx*5 + 3] = current->vx;
+            send_buffer[send_idx*5 + 4] = current->vy;
             
             PlaneNode* to_remove = current;
-            current = current->next;
             remove_plane(list, to_remove);
-        } else {
-            current = current->next;
-        }
+            send_idx++;
+        } 
+        current = next;
     }
 
     // Prepare receive buffer
-    double* recv_buffer = (double*) malloc(total_recv * 6 * sizeof(double));
+    double* recv_buffer = (double*) malloc(total_recv * 5 * sizeof(double));
 
     // Exchange plane data using Alltoall
     MPI_Alltoallv(send_buffer, send_counts, send_displs, MPI_DOUBLE,
@@ -207,17 +200,18 @@ void communicate_planes_alltoall(PlaneList* list, int N, int M, double x_max, do
                   MPI_COMM_WORLD);
 
     // Process received planes
-    for (int i = 0; i < total_recv; i += 6) {
+    for (int i = 0; i < total_recv; i += 5) {
         int index_plane = (int)recv_buffer[i];
         double x = recv_buffer[i + 1];
         double y = recv_buffer[i + 2];
         double vx = recv_buffer[i + 3];
         double vy = recv_buffer[i + 4];
-        int index_map = (int)recv_buffer[i + 5];
+        int index_i = get_index_i(x, x_max, N);
+        int index_j = get_index_j(y, y_max, M);
+        int index_map = get_index(index_i, index_j, N, M);
         insert_plane(list, index_plane, index_map, rank, x, y, vx, vy);
     }
 
-    // Cleanup
     free(send_counts);
     free(recv_counts);
     free(send_displs);
