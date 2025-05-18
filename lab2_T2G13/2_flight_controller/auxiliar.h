@@ -32,6 +32,9 @@ static int get_rank_from_index(int index, const int* tile_displacements, int siz
         if (index < tile_displacements[rank+1]) {
             return rank;
         }
+        if (rank == size - 1 && index >= tile_displacements[rank]) {
+            return rank;
+        }
     }
 
     printf("Error: index %d not found in tile_displacements: %d %d %d\n", index, tile_displacements[0], tile_displacements[1], tile_displacements[2]);
