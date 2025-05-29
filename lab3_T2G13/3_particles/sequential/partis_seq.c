@@ -55,6 +55,9 @@ void setInitialConditions(Particle *particles, const int N)
     {
         // TODO
         // Initial position
+        particles[i].pos.x = 0;
+        particles[i].pos.y = 0;
+        particles[i].pos.z = 0;
 
         // 2 particles for validation
         if (i == 0 || i == N - 1)
@@ -76,6 +79,12 @@ void setInitialConditions(Particle *particles, const int N)
         {
             // TODO
             // Generate random velocity and direction
+            theta = random_double(THETA_MIN, THETA_MAX);
+            phi = random_double(PHI_MIN, PHI_MAX);
+            v0 = random_double(V_MIN, V_MAX);
+            particles[i].vel.x = v0 * sin(theta) * cos(phi);
+            particles[i].vel.y = v0 * sin(theta) * sin(phi);
+            particles[i].vel.z = v0 * cos(theta);
         }
     }
 }
