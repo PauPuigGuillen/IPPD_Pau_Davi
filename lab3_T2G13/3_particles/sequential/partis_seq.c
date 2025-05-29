@@ -100,10 +100,16 @@ void integrateEuler(Particle *particles, const int N)
         particles[i].pos.y += particles[i].vel.y * DT;
         particles[i].pos.z += particles[i].vel.z * DT;
 
+        //Vector3 velocity module
+        double vel_module = sqrt(particles[i].vel.x * particles[i].vel.x +
+                                 particles[i].vel.y * particles[i].vel.y +
+                                 particles[i].vel.z * particles[i].vel.z);
+
+
         // Update velocity
-        particles[i].vel.x += (-K * particles[i].vel.x / M) * DT;
-        particles[i].vel.y += (-K * particles[i].vel.y / M) * DT;
-        particles[i].vel.z += (-K * particles[i].vel.z / M) * DT;
+        particles[i].vel.x += (-K * vel_module * particles[i].vel.x / M) * DT;
+        particles[i].vel.y += (-K * vel_module * particles[i].vel.y / M) * DT;
+        particles[i].vel.z += (-K * vel_module * particles[i].vel.z / M) * DT;
     }
 }
 
