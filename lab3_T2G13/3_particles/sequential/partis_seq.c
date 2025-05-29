@@ -93,6 +93,18 @@ void setInitialConditions(Particle *particles, const int N)
 // Calculate new position and velocity
 void integrateEuler(Particle *particles, const int N)
 {
+    for (int i = 0; i < N; ++i)
+    {
+        // Update position
+        particles[i].pos.x += particles[i].vel.x * DT;
+        particles[i].pos.y += particles[i].vel.y * DT;
+        particles[i].pos.z += particles[i].vel.z * DT;
+
+        // Update velocity
+        particles[i].vel.x += (-K * particles[i].vel.x / M) * DT;
+        particles[i].vel.y += (-K * particles[i].vel.y / M) * DT;
+        particles[i].vel.z += (-K * particles[i].vel.z / M) * DT;
+    }
 }
 
 // TODO
