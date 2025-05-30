@@ -8,6 +8,10 @@
 // Sequential vector addition
 void vecadd_seq(double *A, double *B, double *C, const int N)
 {
+    for (int i = 0; i < N; i++)
+    {
+        C[i] = A[i] + B[i];
+    }
 }
 
 int main(int argc, char *argv[])
@@ -37,6 +41,12 @@ int main(int argc, char *argv[])
     //
     // TODO
 
+    for (int i = 0; i < N; i++)
+    {
+        A[i] = (double)i;
+        B[i] = 2.0 * (N - i);
+    }
+
 
     //
     // Vector addition
@@ -55,6 +65,14 @@ int main(int argc, char *argv[])
     //
     // TODO
     // Validate vector addition
+    // C satisfies C[i] = 2*N - i
+    for (int i = 0; i < N; i++)
+    {
+        if (fabs(C[i] - (2.0 * N - i)) > 1e-6)
+        {
+            printf("Validation failed at index %d: C[%d] = %f, expected = %f\n", i, i, C[i], 2.0 * N - i);
+        }
+    }
 
     //
     // Free memory
