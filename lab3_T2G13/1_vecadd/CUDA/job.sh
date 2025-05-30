@@ -10,4 +10,4 @@
 
 make >> make.out || exit 1
 
-nvcc -o vecadd_cuda vecadd_cuda.cu 500
+nvcc -o vecadd_cuda vecadd_cuda.cu 50000

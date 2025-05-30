@@ -1,5 +1,5 @@
 CC=nvcc
-CFLAGS=-O2 -Wall
+CFLAGS=-O2
 OBJ=vecadd_cuda
 
 all:
