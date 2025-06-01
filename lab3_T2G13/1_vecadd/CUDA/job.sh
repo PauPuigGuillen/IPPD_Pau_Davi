@@ -9,7 +9,10 @@
 #SBATCH --ntasks=1
 
 make >> make.out || exit 1
-
-nvcc -o vecadd_cuda vecadd_cuda.cu
-
+./vecadd_cuda 500
+./vecadd_cuda 5000
+./vecadd_cuda 50000
 ./vecadd_cuda 500000
+./vecadd_cuda 5000000
+./vecadd_cuda 50000000
+./vecadd_cuda 500000000

@@ -40,10 +40,10 @@ void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
     cudaMalloc((void **)&d_C, size);
 
     // Time Host to Device copy
+    cudaMemset(d_C, 0, size);
     cudaEventRecord(start_h2d, 0);
     cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
-    cudaMemset(d_C, 0, size);
     cudaEventRecord(end_h2d, 0);
     cudaEventSynchronize(end_h2d);
     cudaEventElapsedTime(&h2d_time, start_h2d, end_h2d);
@@ -52,6 +52,7 @@ void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
     cudaEventRecord(start_kernel, 0);
     int numBlocks = (N + BLOCKSIZE - 1) / BLOCKSIZE;
     vecadd_cuda<<<numBlocks, BLOCKSIZE>>>(d_A, d_B, d_C, N);
+    //cudaDeviceSynchronize();
     cudaEventRecord(end_kernel, 0);
     cudaEventSynchronize(end_kernel);
     cudaEventElapsedTime(&kernel_time, start_kernel, end_kernel);
@@ -102,6 +103,11 @@ int main(int argc, char *argv[])
     double *A = (double *)malloc(N * sizeof(double));
     double *B = (double *)malloc(N * sizeof(double));
     double *C = (double *)malloc(N * sizeof(double));
+
+    if (A == NULL || B == NULL || C == NULL) {
+        fprintf(stderr, "Host memory allocation failed\n");
+        return 1;
+    }
 
     // Initialize vectors
     for (int i = 0; i < N; i++)

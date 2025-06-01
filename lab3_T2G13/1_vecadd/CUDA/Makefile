@@ -1,5 +1,5 @@
 CC=nvcc
-CFLAGS=-O2
+CFLAGS=-O2 -arch=sm_90
 OBJ=vecadd_cuda
 
 all:
