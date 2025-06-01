@@ -75,7 +75,7 @@ void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
     cudaFree(d_B);
     cudaFree(d_C);
     
-    // Clean up events
+    // Destroy events
     cudaEventDestroy(start_h2d);
     cudaEventDestroy(end_h2d);
     cudaEventDestroy(start_kernel);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     {
         N = atoi(argv[1]);
     }
-    printf("Vector size: %d\n", N);
+    printf("\nVector size: %d\n", N);
 
     // Memory allocation
     double *A = (double *)malloc(N * sizeof(double));
