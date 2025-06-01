@@ -43,6 +43,7 @@ void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
     cudaEventRecord(start_h2d, 0);
     cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
+    cudaMemset(d_C, 0, size);
     cudaEventRecord(end_h2d, 0);
     cudaEventSynchronize(end_h2d);
     cudaEventElapsedTime(&h2d_time, start_h2d, end_h2d);
@@ -121,10 +122,6 @@ int main(int argc, char *argv[])
             printf("Validation failed at index %d: C[%d] = %f, expected = %f\n", 
                    i, i, C[i], 2.0 * N - i);
             errors++;
-            if (errors > 10) {
-                printf("Too many errors, stopping validation\n");
-                break;
-            }
         }
     }
     
