@@ -15,32 +15,71 @@ __global__ void vecadd_cuda(double *A, double *B, double *C, const int N)
     }
 }
 
-// CUDA vector addition wrapper function (renamed to avoid conflict with kernel)
+// CUDA vector addition wrapper function with detailed timing
 void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
 {
     double *d_A, *d_B, *d_C;
     size_t size = N * sizeof(double);
+    float h2d_time = 0.0f, kernel_time = 0.0f, d2h_time = 0.0f;
+    
+    // Event for timing host to device, kernel execution, and device to host (in that order)
+    cudaEvent_t start_h2d, end_h2d;
+    cudaEvent_t start_kernel, end_kernel;
+    cudaEvent_t start_d2h, end_d2h;
+    
+    cudaEventCreate(&start_h2d);
+    cudaEventCreate(&end_h2d);
+    cudaEventCreate(&start_kernel);
+    cudaEventCreate(&end_kernel);
+    cudaEventCreate(&start_d2h);
+    cudaEventCreate(&end_d2h);
 
     // Allocate device memory
     cudaMalloc((void **)&d_A, size);
     cudaMalloc((void **)&d_B, size);
     cudaMalloc((void **)&d_C, size);
 
-    // Copy vectors from host to device
+    // Time Host to Device copy
+    cudaEventRecord(start_h2d, 0);
     cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
+    cudaEventRecord(end_h2d, 0);
+    cudaEventSynchronize(end_h2d);
+    cudaEventElapsedTime(&h2d_time, start_h2d, end_h2d);
 
-    // Launch kernel with calculated grid size
+    // Time kernel execution
+    cudaEventRecord(start_kernel, 0);
     int numBlocks = (N + BLOCKSIZE - 1) / BLOCKSIZE;
     vecadd_cuda<<<numBlocks, BLOCKSIZE>>>(d_A, d_B, d_C, N);
+    cudaEventRecord(end_kernel, 0);
+    cudaEventSynchronize(end_kernel);
+    cudaEventElapsedTime(&kernel_time, start_kernel, end_kernel);
 
-    // Copy result back to host
+    // Time Device to Host copy
+    cudaEventRecord(start_d2h, 0);
     cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
+    cudaEventRecord(end_d2h, 0);
+    cudaEventSynchronize(end_d2h);
+    cudaEventElapsedTime(&d2h_time, start_d2h, end_d2h);
+
+    // Print timing information
+    printf(" Copy A and B Host to Device elapsed time: %.9f seconds\n", h2d_time / 1000.0f);
+    printf(" Kernel elapsed time: %.9f seconds\n", kernel_time / 1000.0f);
+    printf(" Copy C Device to Host elapsed time: %.9f seconds\n", d2h_time / 1000.0f);
+    printf(" Total elapsed time: %.9f seconds\n", (h2d_time + kernel_time + d2h_time) / 1000.0f);
 
     // Free device memory
     cudaFree(d_A);
     cudaFree(d_B);
     cudaFree(d_C);
+    
+    // Clean up events
+    cudaEventDestroy(start_h2d);
+    cudaEventDestroy(end_h2d);
+    cudaEventDestroy(start_kernel);
+    cudaEventDestroy(end_kernel);
+    cudaEventDestroy(start_d2h);
+    cudaEventDestroy(end_d2h);
 }
 
 int main(int argc, char *argv[])
@@ -70,15 +109,8 @@ int main(int argc, char *argv[])
         B[i] = 2.0 * (N - i);
     }
 
-    // Vector addition timing
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
+    // Call the wrapper with CUDA event timing
     vecadd_wrapper(A, B, C, N);
-
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1.0e9;
-    printf("Elapsed time: %.9f seconds\n", elapsed);
 
     // Validation
     int errors = 0;
