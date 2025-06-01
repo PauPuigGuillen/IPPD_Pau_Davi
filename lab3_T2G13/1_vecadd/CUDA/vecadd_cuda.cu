@@ -5,7 +5,17 @@
 
 #define BLOCKSIZE 128
 
-// CUDA kernel for vector addition with the required signature
+// Error handling macro
+#define CUDA_CHECK(call) \
+do { \
+    cudaError_t err = (call); \
+    if (err != cudaSuccess) { \
+        fprintf(stderr, "CUDA error at %s:%d: %s\n", \
+                __FILE__, __LINE__, cudaGetErrorString(err)); \
+    } \
+} while (0)
+
+// CUDA kernel for vector addition
 __global__ void vecadd_cuda(double *A, double *B, double *C, const int N)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -15,7 +25,7 @@ __global__ void vecadd_cuda(double *A, double *B, double *C, const int N)
     }
 }
 
-// CUDA vector addition wrapper function with detailed timing
+// CUDA vector addition wrapper function
 void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
 {
     double *d_A, *d_B, *d_C;
@@ -27,42 +37,41 @@ void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
     cudaEvent_t start_kernel, end_kernel;
     cudaEvent_t start_d2h, end_d2h;
     
-    cudaEventCreate(&start_h2d);
-    cudaEventCreate(&end_h2d);
-    cudaEventCreate(&start_kernel);
-    cudaEventCreate(&end_kernel);
-    cudaEventCreate(&start_d2h);
-    cudaEventCreate(&end_d2h);
+    CUDA_CHECK(cudaEventCreate(&start_h2d));
+    CUDA_CHECK(cudaEventCreate(&end_h2d));
+    CUDA_CHECK(cudaEventCreate(&start_kernel));
+    CUDA_CHECK(cudaEventCreate(&end_kernel));
+    CUDA_CHECK(cudaEventCreate(&start_d2h));
+    CUDA_CHECK(cudaEventCreate(&end_d2h));
 
     // Allocate device memory
-    cudaMalloc((void **)&d_A, size);
-    cudaMalloc((void **)&d_B, size);
-    cudaMalloc((void **)&d_C, size);
+    CUDA_CHECK(cudaMalloc((void **)&d_A, size));
+    CUDA_CHECK(cudaMalloc((void **)&d_B, size));
+    CUDA_CHECK(cudaMalloc((void **)&d_C, size));
 
     // Time Host to Device copy
-    cudaMemset(d_C, 0, size);
-    cudaEventRecord(start_h2d, 0);
-    cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
-    cudaEventRecord(end_h2d, 0);
-    cudaEventSynchronize(end_h2d);
-    cudaEventElapsedTime(&h2d_time, start_h2d, end_h2d);
+    CUDA_CHECK(cudaMemset(d_C, 0, size));
+    CUDA_CHECK(cudaEventRecord(start_h2d, 0));
+    CUDA_CHECK(cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaEventRecord(end_h2d, 0));
+    CUDA_CHECK(cudaEventSynchronize(end_h2d));
+    CUDA_CHECK(cudaEventElapsedTime(&h2d_time, start_h2d, end_h2d));
 
     // Time kernel execution
-    cudaEventRecord(start_kernel, 0);
+    CUDA_CHECK(cudaEventRecord(start_kernel, 0));
     int numBlocks = (N + BLOCKSIZE - 1) / BLOCKSIZE;
     vecadd_cuda<<<numBlocks, BLOCKSIZE>>>(d_A, d_B, d_C, N);
-    //cudaDeviceSynchronize();
-    cudaEventRecord(end_kernel, 0);
-    cudaEventSynchronize(end_kernel);
-    cudaEventElapsedTime(&kernel_time, start_kernel, end_kernel);
+    CUDA_CHECK(cudaEventRecord(end_kernel, 0));
+    CUDA_CHECK(cudaEventSynchronize(end_kernel));
+    CUDA_CHECK(cudaEventElapsedTime(&kernel_time, start_kernel, end_kernel));
 
     // Time Device to Host copy
-    cudaEventRecord(start_d2h, 0);
-    cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
-    cudaEventRecord(end_d2h, 0);
-    cudaEventSynchronize(end_d2h);
-    cudaEventElapsedTime(&d2h_time, start_d2h, end_d2h);
+    CUDA_CHECK(cudaEventRecord(start_d2h, 0));
+    CUDA_CHECK(cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaEventRecord(end_d2h, 0));
+    CUDA_CHECK(cudaEventSynchronize(end_d2h));
+    CUDA_CHECK(cudaEventElapsedTime(&d2h_time, start_d2h, end_d2h));
 
     // Print timing information
     printf(" Copy A and B Host to Device elapsed time: %.9f seconds\n", h2d_time / 1000.0f);
@@ -71,17 +80,17 @@ void vecadd_wrapper(double *h_A, double *h_B, double *h_C, const int N)
     printf(" Total elapsed time: %.9f seconds\n", (h2d_time + kernel_time + d2h_time) / 1000.0f);
 
     // Free device memory
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
     
     // Destroy events
-    cudaEventDestroy(start_h2d);
-    cudaEventDestroy(end_h2d);
-    cudaEventDestroy(start_kernel);
-    cudaEventDestroy(end_kernel);
-    cudaEventDestroy(start_d2h);
-    cudaEventDestroy(end_d2h);
+    CUDA_CHECK(cudaEventDestroy(start_h2d));
+    CUDA_CHECK(cudaEventDestroy(end_h2d));
+    CUDA_CHECK(cudaEventDestroy(start_kernel));
+    CUDA_CHECK(cudaEventDestroy(end_kernel));
+    CUDA_CHECK(cudaEventDestroy(start_d2h));
+    CUDA_CHECK(cudaEventDestroy(end_d2h));
 }
 
 int main(int argc, char *argv[])
