@@ -23,18 +23,72 @@
 // Sequential Matrix Multiplication
 void matmul_seq(double *A, double *B, double *C, const int N)
 {
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            C[i * N + j] = 0.0;
+            for (int k = 0; k < N; k++)
+            {
+                C[i * N + j] += A[i * N + k] * B[k * N + j];
+            }
+        }
+    }
 }
 
 // TODO
 // Simple CUDA Matrix Multiplication Kernel
 __global__ void matmul_naive_kernel(double *A, double *B, double *C, const int N)
 {
+    int row = blockIdx.y * BLOCKSIZE + threadIdx.y;
+    int col = blockIdx.x * BLOCKSIZE + threadIdx.x;
+    
+    if (row < N && col < N) {
+        double sum = 0.0;
+
+        for (int k = 0; k < N; k++) {
+            sum += A[row * N + k] * B[k * N + col];
+        }
+
+        C[row * N + col] = sum;
+    }
+
 }
 
 // TODO
 // Matrix Multiplication Kernel exploiting shared memory
 __global__ void matmul_shared_kernel(double *A, double *B, double *C, const int N)
 {
+    __shared__ double A_tile[BLOCKSIZE][BLOCKSIZE];
+    __shared__ double B_tile[BLOCKSIZE][BLOCKSIZE];
+    
+    int i = blockIdx.y * BLOCKSIZE + threadIdx.y;
+    int j = blockIdx.x * BLOCKSIZE + threadIdx.x;
+    
+    double sum = 0.0;
+
+    for (int tile = 0; tile < N; tile += BLOCKSIZE) {
+        if (i < N && tile + threadIdx.x < N) {
+            A_tile[threadIdx.y][threadIdx.x] = A[i * N + tile + threadIdx.x];
+        }
+        if (j < N && tile + threadIdx.y < N) {
+            B_tile[threadIdx.y][threadIdx.x] = B[(tile + threadIdx.y) * N + j];
+        }
+        
+        __syncthreads();
+
+        if (i < N && j < N) {
+            for (int k = 0; k < BLOCKSIZE && tile + k < N; k++) {
+                sum += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
+            }
+        }
+        
+        __syncthreads();
+    }
+
+    if (i < N && j < N) {
+        C[i * N + j] = sum;
+    }
 }
 
 void validation(double *h_C, double *C, const int N)
@@ -99,7 +153,6 @@ void init_C_gpu(double *h_C, double *d_C, const int N)
 
 int main(int argc, char *argv[])
 {
-    // Argument parsing
     if (argc != 3)
     {
         printf("Usage: %s <matrix size NxN> <check>\n", argv[0]);
@@ -114,19 +167,17 @@ int main(int argc, char *argv[])
     //
     // Memory allocation
     //
-    // Host
     size_t bytes = N * N * sizeof(double);
     double *h_A = (double *)malloc(bytes);
     double *h_B = (double *)malloc(bytes);
     double *h_C = (double *)malloc(bytes);
     double *C = (double *)malloc(bytes);
 
-    // Device
     double *d_A, *d_B, *d_C;
     CUDA_CHECK(cudaMalloc((void **)&d_A, bytes));
     CUDA_CHECK(cudaMalloc((void **)&d_B, bytes));
     CUDA_CHECK(cudaMalloc((void **)&d_C, bytes));
-    CUDA_CHECK(cudaMemset(d_C, 0, bytes)); // Init d_C to 0
+    CUDA_CHECK(cudaMemset(d_C, 0, bytes));
 
     //
     // Matrices initialization
@@ -174,16 +225,18 @@ int main(int argc, char *argv[])
     //
     // Naive kernel
     //
-    // Copy Host to Device
     copy_A_B_H2D(h_A, h_B, d_A, d_B, bytes, &event_start, &event_end, &total_time_ms, "Naive");
 
     // TODO
     // Define threads per block and blocks in the grid
+    dim3 threadsPerBlock(BLOCKSIZE, BLOCKSIZE);
+    dim3 blocksInGrid((N + BLOCKSIZE - 1) / BLOCKSIZE, (N + BLOCKSIZE - 1) / BLOCKSIZE);
 
     CUDA_CHECK(cudaEventRecord(event_start));
 
     // TODO
     // Launch matmul_naive_kernel
+    matmul_naive_kernel<<<blocksInGrid, threadsPerBlock>>>(d_A, d_B, d_C, N);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -195,13 +248,11 @@ int main(int argc, char *argv[])
     total_time_ms += time_ms;
     time_ms = 0.0;
 
-    // Copy Device to Host
     copy_C_D2H(h_C, d_C, bytes, &event_start, &event_end, &total_time_ms, "Naive");
 
     printf("Naive GPU total time: %.9f seconds\n", total_time_ms / 1000);
     total_time_ms = 0.0;
 
-    // Validate
     if (check)
         validation(h_C, C, N);
 
@@ -209,14 +260,14 @@ int main(int argc, char *argv[])
     // Shared memory kernel
     //
     init_C_gpu(h_C, d_C, N);
-    // Copy Host to Device
+    
     copy_A_B_H2D(h_A, h_B, d_A, d_B, bytes, &event_start, &event_end, &total_time_ms, "Shared");
     
-    // Kernel launch
+
     CUDA_CHECK(cudaEventRecord(event_start));
     // TODO
     // Launch matmul_shared_kernel
-
+    matmul_shared_kernel<<<blocksInGrid, threadsPerBlock>>>(d_A, d_B, d_C, N);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -227,13 +278,11 @@ int main(int argc, char *argv[])
     total_time_ms += time_ms;
     time_ms = 0.0;
 
-    // Copy Device to Host
     copy_C_D2H(h_C, d_C, bytes, &event_start, &event_end, &total_time_ms, "Shared");
 
     printf("Shared GPU total time: %.9f seconds\n", total_time_ms / 1000);
     total_time_ms = 0.0;
 
-    // Validate
     if (check)
         validation(h_C, C, N);
 
@@ -244,14 +293,19 @@ int main(int argc, char *argv[])
     cublasHandle_t cublas_handle;
     cublasCreate(&cublas_handle);
 
-    // Copy Host to Device
     copy_A_B_H2D(h_A, h_B, d_A, d_B, bytes, &event_start, &event_end, &total_time_ms, "cuBLAS");
 
     CUDA_CHECK(cudaEventRecord(event_start));
 
-    // TODO
-    // Call cuBLAS Matrix Multiplication kernel
-
+    const double alpha = 1.0;
+    const double beta = 0.0;
+    cublasDgemm(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_T,
+                N, N, N,
+                &alpha,
+                d_B, N,
+                d_A, N,
+                &beta,
+                d_C, N);
 
     CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -262,25 +316,18 @@ int main(int argc, char *argv[])
     total_time_ms += time_ms;
     time_ms = 0.0;
 
-    // Copy Device to Host
     copy_C_D2H(h_C, d_C, bytes, &event_start, &event_end, &total_time_ms, "cuBLAS");
 
     printf("cuBLAS GPU total time: %.9f seconds\n", total_time_ms / 1000);
 
-    // Validate
     if (check)
         validation(h_C, C, N);
 
-    //
-    // Free memory
-    //
-    // Host
     free(h_A);
     free(h_B);
     free(h_C);
     free(C);
 
-    // Device
     CUDA_CHECK(cudaFree(d_A));
     CUDA_CHECK(cudaFree(d_B));
     CUDA_CHECK(cudaFree(d_C));
