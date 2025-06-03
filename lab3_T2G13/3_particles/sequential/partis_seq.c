@@ -84,7 +84,7 @@ void setInitialConditions(Particle *particles, const int N)
             v0 = random_double(V_MIN, V_MAX);
             particles[i].vel.x = v0 * sin(theta) * cos(phi);
             particles[i].vel.y = v0 * sin(theta) * sin(phi);
-            particles[i].vel.z = v0 * cos(theta);
+            particles[i].vel.z = -v0 * cos(theta);
         }
     }
 }
