@@ -1,5 +1,5 @@
 CC=nvc
-CFLAGS=-O2 -arch=sm_90 -acc=gpu -gpu=managed -Minfo=all -mp
+CFLAGS=-O2 #-arch=sm_90 -acc=gpu -gpu=managed -Minfo=all -mp
 OBJ=vecadd_oacc
 
 all:

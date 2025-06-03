@@ -108,15 +108,11 @@ int main(int argc, char *argv[])
     }
     printf("\nVector size: %d\n", N);
 
-    // Memory allocation
-    double *A = (double *)malloc(N * sizeof(double));
-    double *B = (double *)malloc(N * sizeof(double));
-    double *C = (double *)malloc(N * sizeof(double));
-
-    if (A == NULL || B == NULL || C == NULL) {
-        fprintf(stderr, "Host memory allocation failed\n");
-        return 1;
-    }
+    // Memory allocation using pinned memory instead of standard malloc
+    double *A, *B, *C;
+    CUDA_CHECK(cudaMallocHost((void **)&A, N * sizeof(double)));
+    CUDA_CHECK(cudaMallocHost((void **)&B, N * sizeof(double)));
+    CUDA_CHECK(cudaMallocHost((void **)&C, N * sizeof(double)));
 
     // Initialize vectors
     for (int i = 0; i < N; i++)
@@ -144,10 +140,10 @@ int main(int argc, char *argv[])
         printf("Validation successful! All values match expected results.\n");
     }
 
-    // Free memory
-    free(A);
-    free(B);
-    free(C);
+    // Free pinned memory instead of standard free
+    CUDA_CHECK(cudaFreeHost(A));
+    CUDA_CHECK(cudaFreeHost(B));
+    CUDA_CHECK(cudaFreeHost(C));
 
     return 0;
 }

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <openacc.h>
 
 // OpenACC implementation of vector addition
 void vecadd_oacc(double *A, double *B, double *C, const int N)
