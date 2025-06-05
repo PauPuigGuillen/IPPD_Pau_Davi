@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 
     const double alpha = 1.0;
     const double beta = 0.0;
-    cublasDgemm(cublas_handle, CUBLAS_OP_T, CUBLAS_OP_T,
+    cublasDgemm(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_N,
                 N, N, N,
                 &alpha,
                 d_B, N,
