@@ -10,3 +10,4 @@
 
 make >> make.out || exit 1
 ./partis_oacc_prog_managed 1000 1
+nsys profile ./partis_oacc_prog_managed 1000 1
