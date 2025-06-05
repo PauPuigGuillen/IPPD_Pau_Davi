@@ -10,4 +10,4 @@
 
 make >> make.out || exit 1
 
-./matmul 1024 0
+./matmul 1024 1
