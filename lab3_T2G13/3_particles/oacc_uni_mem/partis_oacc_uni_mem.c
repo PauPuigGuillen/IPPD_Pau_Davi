@@ -93,7 +93,7 @@ void setInitialConditions(Particle *particles, const int N)
 // Calculate new position and velocity
 void integrateEuler(Particle *particles, const int N)
 {
-    #pragma acc parallel loop present(particles[0:N])
+    #pragma acc parallel loop
     for (int i = 0; i < N; ++i)
     {
         // Update position
@@ -118,7 +118,7 @@ void integrateEuler(Particle *particles, const int N)
 // Copy the state of the particles to a backup buffer.
 void copyFrame(Particle *p_dst, Particle *p_src, const int N)
 {
-    #pragma acc parallel loop present(p_src[0:N], p_dst[0:N])
+    #pragma acc parallel loop
     for (int i = 0; i < N; ++i)
     {
         p_dst[i].pos.x = p_src[i].pos.x;
@@ -253,7 +253,6 @@ int main(int argc, char *argv[])
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-    #pragma acc enter data create(particles[0:N], pFrame[0:N])
     while (t <= TOTAL_TIME)
     {
         // Time integration
@@ -273,7 +272,6 @@ int main(int argc, char *argv[])
 
         ++iter;
     }
-    #pragma acc exit data delete(particles[0:N], pFrame[0:N])
 
     clock_gettime(CLOCK_MONOTONIC, &end);
 
