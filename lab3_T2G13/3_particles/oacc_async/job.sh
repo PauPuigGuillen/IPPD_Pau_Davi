@@ -9,4 +9,5 @@
 #SBATCH --ntasks=1
 
 make >> make.out || exit 1
+./partis_oacc_async 1000 0
 nsys profile ./partis_oacc_async 1000 0

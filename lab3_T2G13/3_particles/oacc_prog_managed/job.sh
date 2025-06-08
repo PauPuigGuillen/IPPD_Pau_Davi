@@ -9,4 +9,7 @@
 #SBATCH --ntasks=1
 
 make >> make.out || exit 1
-nsys profile ./partis_oacc_prog_managed 1000 0
+./partis_oacc_prog_managed 500 0
+./partis_oacc_prog_managed 1000 0
+./partis_oacc_prog_managed 1500 0
+./partis_oacc_prog_managed 2000 0

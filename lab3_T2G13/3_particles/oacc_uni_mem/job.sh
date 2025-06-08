@@ -9,4 +9,7 @@
 #SBATCH --ntasks=1
 
 make >> make.out || exit 1
-nsys profile ./partis_oacc_uni_mem 1000 0
+./partis_oacc_uni_mem 1000 1
+./partis_oacc_uni_mem 1000 0
+./partis_oacc_uni_mem 1500 0
+./partis_oacc_uni_mem 2000 0
