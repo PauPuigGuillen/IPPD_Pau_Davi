@@ -253,7 +253,8 @@ int main(int argc, char *argv[])
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-    #pragma acc enter data create(particles[0:N], pFrame[0:N])
+    // Copy initial data to device
+    #pragma acc enter data copyin(particles[0:N], pFrame[0:N])
     while (t <= TOTAL_TIME)
     {
         // Time integration
@@ -268,11 +269,17 @@ int main(int argc, char *argv[])
             copyFrame(pFrame, particles, N);
 
             if (write_flag)
+            {
+                // Update host with latest data before writing
+                #pragma acc update host(pFrame[0:N])
                 write_solution(pFrame, N, curr_frame_time, filename);
+            }
         }
 
         ++iter;
     }
+    // Ensure all data is up to date on host before exiting data region
+    #pragma acc update host(particles[0:N], pFrame[0:N])
     #pragma acc exit data delete(particles[0:N], pFrame[0:N])
 
     clock_gettime(CLOCK_MONOTONIC, &end);
